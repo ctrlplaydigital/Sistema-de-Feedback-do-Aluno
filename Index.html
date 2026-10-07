@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback de alunos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #181b25;
+    --panel: #1c2230;
+    --panel-line: #2b3347;
+    --field: #2f3749;
+    --field-line: #3b4560;
+    --text: #e6eaf2;
+    --muted: #8d98ad;
+    --accent: #5db6f7;
+    --accent-line: #3b94e0;
+    --btn: #3b94e0;
+    --btn-hover: #2f7fc6;
+    --warn-bg: #3a331d;
+    --warn-line: #d9b44a;
+    --danger: #ff8d86;
+    --danger-bg: #3a2326;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px; line-height: 1.5;
+  }
+  main {
+    max-width: 860px; margin: 18px auto 60px; padding: 36px 36px 40px;
+    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px;
+  }
+  h1 {
+    font-size: 1.9rem; font-weight: 700; margin: 24px 0 0; padding-bottom: 14px;
+    text-align: center; color: var(--accent); letter-spacing: -0.01em;
+    border-bottom: 1px solid var(--accent-line);
+  }
+  .sub { color: var(--muted); text-align: center; margin: 12px 0 26px; font-size: .9rem; }
+
+  .card { background: none; border: 0; padding: 0; margin: 0; }
+  .student { margin-bottom: 20px; }
+
+  label.q, .q-title {
+    display: block; font-weight: 700; font-size: .78rem; color: var(--accent); margin-bottom: 6px;
+  }
+  .req { color: var(--danger); margin-left: 2px; }
+
+  input[type=text], select, textarea {
+    width: 100%; font: inherit; color: var(--text); background: var(--field);
+    border: 1px solid var(--field-line); border-radius: 5px; padding: 10px 12px;
+    color-scheme: dark;
+  }
+  input::placeholder, textarea::placeholder { color: var(--muted); }
+  textarea { min-height: 110px; resize: vertical; }
+  input:focus, select:focus, textarea:focus, .btn:focus-visible,
+  .opt input:focus-visible {
+    outline: 2px solid var(--accent-line); outline-offset: 1px; border-color: var(--accent-line);
+  }
+
+  .row { display: flex; gap: 10px; align-items: stretch; }
+  .row input { flex: 1; min-width: 0; }
+
+  .btn {
+    font: inherit; font-weight: 600; border-radius: 6px; padding: 10px 16px; cursor: pointer;
+    border: 1px solid var(--accent-line); background: transparent; color: var(--accent);
+    white-space: nowrap;
+  }
+  .btn:hover { background: rgba(93,182,247,.12); }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .btn.primary {
+    display: block; margin: 34px auto 0; background: var(--btn); color: #fff;
+    border-color: var(--btn); padding: 12px 22px; font-size: .9rem;
+  }
+  .btn.primary:hover { background: var(--btn-hover); }
+
+  .opts { display: grid; gap: 8px; }
+  .opts.grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .opt {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer;
+    background: var(--field); border: 1px solid var(--field-line); border-radius: 5px;
+  }
+  .opt:hover { border-color: var(--accent-line); }
+  .opt:has(input:checked) { background: #263f5a; border-color: var(--accent-line); }
+  .opt input { width: 17px; height: 17px; accent-color: var(--accent-line); margin: 0; }
+
+  .field { margin-bottom: 18px; }
+
+  .banner { display: none; margin-top: 12px; padding: 10px 12px; border-radius: 5px; font-size: .9rem; }
+  .banner.show { display: block; }
+  .banner.found { background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .banner.none { background: var(--field); border: 1px solid var(--field-line); color: var(--muted); }
+  .banner.error { background: var(--danger-bg); border: 1px solid #7a3b40; color: var(--danger); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--btn); color: #fff; padding: 12px 18px; border-radius: 6px;
+    opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; }
+
+
+  .result textarea { min-height: 340px; margin-top: 14px; line-height: 1.55; }
+  .result .actions { display: flex; gap: 12px; justify-content: center; align-items: center; margin-top: 22px; }
+  .result .actions .btn.primary { margin: 0; }
+  .result .actions .btn { width: auto; }
+
+  .loading { text-align: center; color: var(--muted); padding: 50px 0; }
+
+  @media (max-width: 560px) {
+    main { margin: 0; border-radius: 0; border-left: 0; border-right: 0; padding: 24px 16px 40px; }
+    .row { flex-direction: column; }
+    .btn { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Feedback do Aluno</h1>
+  <p class="sub">Registre o feedback a cada seis aulas. Se nada mudou, busque o último e envie de novo.</p>
+
+  <div id="app" class="loading">Carregando formulário…</div>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+  /* ============ CONEXÃO COM O GOOGLE APPS SCRIPT ============
+     1) Cole abaixo o link /exec da sua implantação
+     2) Use o mesmo TOKEN definido no Code.gs                    */
+  var API_URL = 'COLE_AQUI_O_LINK_/exec';
+  var TOKEN = 'troque-por-um-codigo-seu';
+
+  function apiCheck(d) { if (d && d.error) throw new Error(d.error); return d; }
+  function apiGet(params) {
+    params.token = TOKEN;
+    var qs = Object.keys(params).map(function (k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    return fetch(API_URL + '?' + qs).then(function (r) { return r.json(); }).then(apiCheck);
+  }
+  function apiPost(body) {
+    body.token = TOKEN;
+    return fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(apiCheck);
+  }
+  function makeRunner(ok, fail) {
+    function run(p) { p.then(function (d) { if (ok) ok(d); }).catch(function (e) { if (fail) fail(e); }); }
+    return {
+      withSuccessHandler: function (f) { return makeRunner(f, fail); },
+      withFailureHandler: function (f) { return makeRunner(ok, f); },
+      getConfig: function () { run(apiGet({ action: 'config' })); },
+      getLastFeedback: function (nome) { run(apiGet({ action: 'last', aluno: nome })); },
+      saveFeedback: function (payload) { run(apiPost(payload)); }
+    };
+  }
+  var google = { script: { run: makeRunner() } };
+  /* ========================================================== */
+
+  var CONFIG = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 3500);
+  }
+
+  function fieldHtml(f) {
+    var req = f.required ? '<span class="req" aria-hidden="true">*</span>' : '';
+    var id = 'f_' + f.key;
+    var head = '<label class="q" for="' + id + '">' + esc(f.label) + req + '</label>';
+    var i, html = '';
+
+    if (f.type === 'text') {
+      return '<div class="field" data-key="' + f.key + '">' + head +
+        '<input type="text" id="' + id + '"' + (f.required ? ' required' : '') + '></div>';
+    }
+    if (f.type === 'textarea') {
+      return '<div class="field" data-key="' + f.key + '">' + head +
+        '<textarea id="' + id + '"' + (f.required ? ' required' : '') + '></textarea></div>';
+    }
+    if (f.type === 'select') {
+      html = '<option value="">Selecione…</option>';
+      for (i = 0; i < f.options.length; i++) html += '<option>' + esc(f.options[i]) + '</option>';
+      return '<div class="field" data-key="' + f.key + '">' + head +
+        '<select id="' + id + '"' + (f.required ? ' required' : '') + '>' + html + '</select></div>';
+    }
+    // radio / checkbox
+    var type = f.type === 'radio' ? 'radio' : 'checkbox';
+    for (i = 0; i < f.options.length; i++) {
+      html += '<label class="opt"><input type="' + type + '" name="' + f.key + '" value="' +
+        esc(f.options[i]) + '"><span>' + esc(f.options[i]) + '</span></label>';
+    }
+    return '<div class="field" data-key="' + f.key + '" role="group" aria-label="' + esc(f.label) + '">' +
+      '<span class="q-title">' + esc(f.label) + req + '</span>' +
+      '<div class="opts grid">' + html + '</div></div>';
+  }
+
+  function build(cfg) {
+    CONFIG = cfg;
+    var dl = '';
+    cfg.students.forEach(function (s) { dl += '<option value="' + esc(s) + '">'; });
+
+    $('app').className = '';
+    $('app').innerHTML =
+      '<form id="form" novalidate>' +
+        '<div class="card student">' +
+          '<label class="q" for="aluno">Nome do aluno<span class="req" aria-hidden="true">*</span></label>' +
+          '<div class="row">' +
+            '<input type="text" id="aluno" list="alunos" autocomplete="off" required>' +
+            '<datalist id="alunos">' + dl + '</datalist>' +
+            '<button type="button" class="btn" id="btnFetch">Buscar último feedback</button>' +
+          '</div>' +
+          '<div id="banner" class="banner" role="status"></div>' +
+        '</div>' +
+        '<div class="card">' + cfg.fields.map(fieldHtml).join('') + '</div>' +
+        '<button type="submit" class="btn primary" id="btnSend">Enviar feedback</button>' +
+      '</form>';
+
+    $('btnFetch').addEventListener('click', fetchLast);
+    $('form').addEventListener('submit', submitForm);
+    $('aluno').addEventListener('input', function () { banner(null); });
+  }
+
+  function banner(type, msg) {
+    var b = $('banner');
+    b.className = 'banner' + (type ? ' show ' + type : '');
+    b.textContent = msg || '';
+  }
+
+  function setValue(f, v) {
+    var wrap = document.querySelector('.field[data-key="' + f.key + '"]');
+    if (!wrap) return;
+    if (f.type === 'checkbox') {
+      var set = {}; (v || []).forEach(function (x) { set[x] = true; });
+      wrap.querySelectorAll('input').forEach(function (inp) { inp.checked = !!set[inp.value]; });
+    } else if (f.type === 'radio') {
+      wrap.querySelectorAll('input').forEach(function (inp) { inp.checked = (inp.value === v); });
+    } else {
+      wrap.querySelector('input,select,textarea').value = v || '';
+    }
+  }
+
+  function getValue(f) {
+    var wrap = document.querySelector('.field[data-key="' + f.key + '"]');
+    if (f.type === 'checkbox') {
+      return Array.prototype.map.call(wrap.querySelectorAll('input:checked'), function (i) { return i.value; });
+    }
+    if (f.type === 'radio') {
+      var c = wrap.querySelector('input:checked'); return c ? c.value : '';
+    }
+    return wrap.querySelector('input,select,textarea').value.trim();
+  }
+
+  function fetchLast() {
+    var nome = $('aluno').value.trim();
+    if (!nome) { banner('error', 'Digite o nome do aluno antes de buscar.'); $('aluno').focus(); return; }
+    var btn = $('btnFetch'); btn.disabled = true; btn.textContent = 'Buscando…';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'Buscar último feedback';
+        if (!res.found) {
+          banner('none', 'Nenhum feedback anterior encontrado para esse aluno. Preencha normalmente.');
+          return;
+        }
+        $('aluno').value = res.aluno;
+        CONFIG.fields.forEach(function (f) { setValue(f, res.values[f.key]); });
+        banner('found', 'Formulário preenchido com o feedback de ' + res.date +
+          '. Ajuste o que mudou e envie.');
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'Buscar último feedback';
+        banner('error', 'Não foi possível buscar: ' + (err.message || err));
+      })
+      .getLastFeedback(nome);
+  }
+
+  function submitForm(ev) {
+    ev.preventDefault();
+    var aluno = $('aluno').value.trim();
+    var values = {}, missing = [];
+
+    if (!aluno) missing.push('Nome do aluno');
+    CONFIG.fields.forEach(function (f) {
+      var v = getValue(f); values[f.key] = v;
+      var empty = Array.isArray(v) ? v.length === 0 : !v;
+      if (f.required && empty) missing.push(f.label);
+    });
+    if (missing.length) {
+      banner('error', 'Preencha: ' + missing.join(', ') + '.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    var btn = $('btnSend'); btn.disabled = true; btn.textContent = 'Enviando…';
+    google.script.run
+      .withSuccessHandler(function (res) {
+        CONFIG.students = res.students;
+        showResult(aluno, values);
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'Enviar feedback';
+        banner('error', 'Erro ao enviar: ' + (err.message || err));
+      })
+      .saveFeedback({ aluno: aluno, values: values });
+  }
+
+  function buildText(aluno, values) {
+    var d = new Date();
+    var data = ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+    var out = ['Feedback do aluno: ' + aluno, 'Data: ' + data, ''];
+    CONFIG.fields.forEach(function (f) {
+      if (f.relatorio === false) return;
+      var v = values[f.key];
+      var txt = Array.isArray(v) ? v.join(', ') : v;
+      if (!txt) return;
+      out.push(f.label + ':');
+      out.push(txt);
+      out.push('');
+    });
+    return out.join('\n').replace(/\n+$/, '');
+  }
+
+  function showResult(aluno, values) {
+    $('app').innerHTML =
+      '<div class="result">' +
+        '<div class="banner show found">Feedback de ' + esc(aluno) + ' salvo na planilha. ' +
+        'Abaixo está o texto pronto para o portal do aluno; você pode editar antes de copiar.</div>' +
+        '<textarea id="resultText" aria-label="Texto do feedback"></textarea>' +
+        '<div class="actions">' +
+          '<button type="button" class="btn primary" id="btnCopy">Copiar texto</button>' +
+          '<button type="button" class="btn" id="btnNew">Novo feedback</button>' +
+        '</div>' +
+      '</div>';
+    $('resultText').value = buildText(aluno, values);
+    $('btnCopy').addEventListener('click', copyText);
+    $('btnNew').addEventListener('click', function () { build(CONFIG); window.scrollTo(0, 0); });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function copyText() {
+    var ta = $('resultText');
+    ta.focus(); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    if (!ok && navigator.clipboard) {
+      navigator.clipboard.writeText(ta.value).then(function () { toast('Texto copiado.'); });
+      return;
+    }
+    toast(ok ? 'Texto copiado.' : 'Não foi possível copiar. Selecione o texto e use Ctrl+C.');
+  }
+
+  google.script.run
+    .withSuccessHandler(build)
+    .withFailureHandler(function (e) {
+      $('app').textContent = 'Erro ao carregar: ' + (e.message || e);
+    })
+    .getConfig();
+</script>
+</body>
+</html>
